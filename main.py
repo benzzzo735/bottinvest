@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from services.sheets import analyze_portfolio
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -50,6 +51,15 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if text == "📊 Портфель":
             await update.message.reply_text("📊 Портфель", reply_markup=PORTFOLIO_MENU)
             return
+
+        if text == "🧠 Анализ портфеля":
+            await update.message.reply_text(
+                analyze_portfolio(),
+                reply_markup=BUY_MENU,
+                parse_mode="Markdown"
+                )    
+            return
+
 
         if text == "📈 Доход":
             await update.message.reply_text("📈 Доход", reply_markup=INCOME_MENU)
@@ -147,5 +157,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
