@@ -3,7 +3,8 @@ from telegram import ReplyKeyboardMarkup
 BUY_MENU = ReplyKeyboardMarkup(
     [
         ["🛒 Подсказка покупки"],
-        ["⬅️ Назад"],
+        ["🧠 Анализ портфеля"],
+        ["⬅️ В главное меню"],
     ],
     resize_keyboard=True
 )
