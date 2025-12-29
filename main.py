@@ -10,6 +10,12 @@ from telegram.ext import (
     filters,
 )
 
+from services.sheets import (
+    portfolio_bcs,
+    portfolio_alfa,
+    portfolio_all,
+)
+
 from keyboards.main_menu import MAIN_MENU
 from keyboards.portfolio_menu import PORTFOLIO_MENU
 from keyboards.income_menu import INCOME_MENU
@@ -51,6 +57,31 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if text == "📊 Портфель":
             await update.message.reply_text("📊 Портфель", reply_markup=PORTFOLIO_MENU)
             return
+
+
+        if text == "🟦 BCS":
+    await update.message.reply_text(
+        portfolio_bcs(),
+        reply_markup=PORTFOLIO_MENU,
+        parse_mode="Markdown"
+    )
+    return
+
+if text == "🟥 ALFA":
+    await update.message.reply_text(
+        portfolio_alfa(),
+        reply_markup=PORTFOLIO_MENU,
+        parse_mode="Markdown"
+    )
+    return
+
+if text == "🟨 ВСЕ ВМЕСТЕ":
+    await update.message.reply_text(
+        portfolio_all(),
+        reply_markup=PORTFOLIO_MENU,
+        parse_mode="Markdown"
+    )
+    return
 
         if text == "🧠 Анализ портфеля":
             await update.message.reply_text(
@@ -157,6 +188,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
