@@ -3,3 +3,8 @@ python-dotenv
 gspread
 pandas
 oauth2client
+python-telegram-bot[job-queue]==20.7
+python-dotenv
+gspread
+google-auth
+
