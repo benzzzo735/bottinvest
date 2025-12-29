@@ -153,3 +153,60 @@ def get_buy_hint():
         "— выравнивание портфеля\n"
         "— снижение перекоса"
     )
+
+def analyze_portfolio():
+    df = load_dataframe()
+
+    total_value = 0
+    positions = []
+
+    for _, row in df.iterrows():
+        qty = to_float(row.get("Количество"))
+        price = to_float(row.get("Текущая цена"))
+        target = to_float(row.get("Целевая доля %"))
+        ticker = row.get("Тикер", "—")
+
+        value = qty * price
+        total_value += value
+
+        positions.append({
+            "ticker": ticker,
+            "value": value,
+            "target": target,
+        })
+
+    if total_value == 0:
+        return "📉 Портфель пуст"
+
+    result = ["🧠 *Анализ портфеля*\n"]
+
+    under = []
+    over = []
+
+    for p in positions:
+        actual_pct = p["value"] / total_value * 100
+        diff = actual_pct - p["target"]
+
+        if diff < -1:
+            under.append((p["ticker"], diff))
+        elif diff > 1:
+            over.append((p["ticker"], diff))
+
+    if under:
+        result.append("📉 *Недовес:*")
+        for t, d in under:
+            result.append(f"• {t} {d:.1f}%")
+
+    if over:
+        result.append("\n📈 *Перевес:*")
+        for t, d in over:
+            result.append(f"• {t} +{d:.1f}%")
+
+    if under:
+        main = sorted(under, key=lambda x: x[1])[0]
+        result.append(
+            f"\n🛒 *Рекомендация:*\n"
+            f"Приоритет докупки: *{main[0]}*"
+        )
+
+    return "\n".join(result)
