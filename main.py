@@ -23,13 +23,18 @@ from services.sheets import (
     get_buy_hint,
 )
 
+from services.notifications import (
+    enable_notifications,
+    disable_notifications,
+)
+
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 *Инвест-бот*\nВыбери раздел:",
+        "👋 *Инвест-бот*\n\nВыбери раздел:",
         reply_markup=MAIN_MENU,
         parse_mode="Markdown"
     )
@@ -37,15 +42,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    print(f"[DEBUG] Button pressed: {text}")  # 👈 ЛОГ
+    chat_id = update.message.chat_id
+    app = context.application
 
     try:
         # ---------- ГЛАВНОЕ МЕНЮ ----------
         if text == "📊 Портфель":
-            await update.message.reply_text(
-                "📊 Портфель",
-                reply_markup=PORTFOLIO_MENU
-            )
+            await update.message.reply_text("📊 Портфель", reply_markup=PORTFOLIO_MENU)
             return
 
         if text == "📈 Доход":
@@ -66,9 +69,8 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # ---------- ПОДМЕНЮ ----------
         if text == "📊 Показать портфель":
-            result = get_portfolio_summary()
             await update.message.reply_text(
-                result,
+                get_portfolio_summary(),
                 reply_markup=PORTFOLIO_MENU,
                 parse_mode="Markdown"
             )
@@ -98,27 +100,34 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if text == "🔔 Мой статус":
+        # ---------- УВЕДОМЛЕНИЯ ----------
+        if text == "🔔 Включить уведомления":
+            enable_notifications(app, chat_id)
             await update.message.reply_text(
-                "🔔 Уведомления активны (пока вручную)",
+                "🔔 Уведомления включены (ежедневно в 10:00)",
                 reply_markup=NOTIFY_MENU
             )
             return
 
-        if text == "⬅️ Назад":
+        if text == "🔕 Выключить уведомления":
+            disable_notifications(app, chat_id)
+            await update.message.reply_text(
+                "🔕 Уведомления выключены",
+                reply_markup=NOTIFY_MENU
+            )
+            return
+
+        # ---------- ВОЗВРАТ ----------
+        if text == "⬅️ В главное меню":
             await update.message.reply_text(
                 "⬅️ Главное меню",
                 reply_markup=MAIN_MENU
             )
             return
 
-        await update.message.reply_text(
-            "❓ Неизвестная команда",
-            reply_markup=MAIN_MENU
-        )
+        await update.message.reply_text("❓ Команда не распознана", reply_markup=MAIN_MENU)
 
     except Exception as e:
-        print(f"[ERROR] {e}")
         await update.message.reply_text(
             f"❌ Ошибка:\n{e}",
             reply_markup=MAIN_MENU
