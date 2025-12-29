@@ -1,27 +1,45 @@
+import os
+import json
 import gspread
 import pandas as pd
+from google.oauth2.service_account import Credentials
 
 SPREADSHEET_ID = "1XxujrU5z67K6oUyeGbv50AggXAw90zspSgNdkYq2tbA"
 SHEET_NAME = "ПОРТФЕЛЬ"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
 
 
 def to_float(value):
     try:
         if value is None:
             return 0.0
-
         value = str(value).strip()
         if value == "":
             return 0.0
-
         value = value.replace("₽", "").replace(" ", "").replace(",", ".")
         return float(value)
     except Exception:
         return 0.0
 
 
+def get_client():
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+
+    if not creds_json:
+        raise RuntimeError("❌ GOOGLE_CREDENTIALS не задана")
+
+    creds_dict = json.loads(creds_json)
+    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+
+    return gspread.authorize(creds)
+
+
 def load_dataframe():
-    gc = gspread.service_account(filename="credentials.json")
+    gc = get_client()
     sh = gc.open_by_key(SPREADSHEET_ID)
     sheet = sh.worksheet(SHEET_NAME)
     return pd.DataFrame(sheet.get_all_records())
@@ -41,31 +59,25 @@ def get_portfolio_summary():
         value = qty * price
         total_value += value
 
-        rows.append({
-            "ticker": ticker,
-            "qty": qty,
-            "price": price,
-            "value": value,
-        })
+        rows.append((ticker, qty, price, value))
 
     if total_value == 0:
         return "📊 Портфель пуст"
 
     lines = ["📊 *Портфель*\n"]
 
-    for r in rows:
-        share = r["value"] / total_value * 100
+    for ticker, qty, price, value in rows:
+        share = value / total_value * 100
         emoji = "🟢" if share >= 20 else "🟡" if share >= 10 else "🔵"
 
         lines.append(
-            f"{emoji} *{r['ticker']}*\n"
-            f"  Кол-во: {r['qty']:.2f}\n"
-            f"  Цена: {r['price']:,.0f} ₽\n"
-            f"  Стоимость: {r['value']:,.0f} ₽ ({share:.1f}%)\n"
+            f"{emoji} *{ticker}*\n"
+            f"  Кол-во: {qty:.2f}\n"
+            f"  Цена: {price:,.0f} ₽\n"
+            f"  Стоимость: {value:,.0f} ₽ ({share:.1f}%)\n"
         )
 
     lines.append(f"💰 *Итого:* {total_value:,.0f} ₽")
-
     return "\n".join(lines)
 
 
@@ -81,7 +93,6 @@ def get_income():
 
     profit = current - invested
     pct = (profit / invested * 100) if invested > 0 else 0
-
     emoji = "📈" if profit >= 0 else "📉"
 
     return (
@@ -111,6 +122,7 @@ def get_taxes():
         f"Налог (13%): {tax:,.0f} ₽"
     )
 
+
 def get_buy_hint():
     df = load_dataframe()
 
@@ -124,20 +136,20 @@ def get_buy_hint():
 
         value = qty * price
         total += value
-
         positions.append((ticker, value))
 
-    if total == 0:
+    positions.sort(key=lambda x: x[1])
+
+    if not positions or total == 0:
         return "🛒 Портфель пуст"
 
-    positions.sort(key=lambda x: x[1])
     weakest = positions[0][0]
 
     return (
         "🛒 *Что купить*\n\n"
-        f"Самая маленькая доля сейчас у:\n"
-        f"➡️ *{weakest}*\n\n"
+        f"📉 Самая маленькая доля:\n"
+        f"*{weakest}*\n\n"
         "📌 Логика:\n"
         "— выравнивание портфеля\n"
-        "— снижение перекоса\n"
+        "— снижение перекоса"
     )
